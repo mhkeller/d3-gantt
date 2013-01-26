@@ -63,43 +63,49 @@
 		var dataSet = [
 			{
 				"startDate":"1/1/12",
-				"endDate":"2/1/12",
+				"endDate":"12/31/12",
 				"sex":"male",
-				"companyName":"Vandelay Industries",
+				"companyName":"Crazy Joe Davola",
 			},
 			{
-				"startDate":"5/2/12",
-				"endDate":"4/31/13",
+				"startDate":"1/1/12",
+				"endDate":"12/31/12",
 				"sex":"male",
 				"companyName":"Dr. Martin Van Nostrand"
 			},
 			{
-				"startDate":"6/14/12",
-				"endDate":"8/11/12",
+				"startDate":"1/1/12",
+				"endDate":"12/31/12",
 				"sex":"male",
 				"companyName":"Uncle Leo"
 			},
 			{
-				"startDate":"3/1/12",
-				"endDate":"7/31/12",
-				"sex":"female",
+				"startDate":"1/1/12",
+				"endDate":"12/31/12",
+				"sex":"male",
 				"companyName":"Jackie Chiles"
 			},
 			{
-				"startDate":"3/1/12",
-				"endDate":"7/31/12",
-				"sex":"female",
-				"companyName":"Crazy Joe Davola"
-			},
-			{
-				"startDate":"11/1/12",
+				"startDate":"1/1/13",
 				"endDate":"12/31/13",
-				"sex":"male",
-				"companyName":"Lloyd Braun"
+				"sex":"female",
+				"companyName":"The Drakette"
 			},
 			{
-				"startDate":"12/1/11",
-				"endDate":"6/15/12",
+				"startDate":"1/1/13",
+				"endDate":"12/31/13",
+				"sex":"female",
+				"companyName":"Babs Kramer"
+			},
+			{
+				"startDate":"1/1/13",
+				"endDate":"12/31/13",
+				"sex":"female",
+				"companyName":"Wanda Pepper"
+			},
+			{
+				"startDate":"1/1/13",
+				"endDate":"12/31/13",
 				"sex":"female",
 				"companyName":"Sue Ellen Mishkey"
 			}
@@ -110,7 +116,7 @@
 		// D3 requires each object to have a unique key for object constancy
 		// http://bost.ocks.org/mike/constancy/
 		// We can use underscore to create that if we're not sure if they exist in our data
-		// Useful if you're updating data quickly (realtime, daily) and need otherwise meaningless uids
+		// Useful if you're updating data quickly (realtime, daily), don't want to add those to the data yourself each time and need otherwise meaningless uids
 
 		// Also useful for making an associative array for hover info
 		for (var datum in dataSet){
@@ -210,6 +216,7 @@
 		}
 
 		// Company bars
+		// It's somewhat unclear whether it's best to make var bar the selection on 'rects' include .data() or not. Different d3 examples do have different things
 		var bar = svg.selectAll("rect")
 			.data(DATA.ds, function(key){return key.uid});
 
@@ -247,11 +254,14 @@
 
 		// take the new sorted dataSet and calculate new y values from the new index values
 	  	function animateRows(){
+	  		var bar = svg.selectAll('rect');
+
 		    bar.data(DATA.ds, function(d){return d.uid})
 		    	.transition()
 		      .duration(400)
 		      .attr("y", function(d, i) {return y(i) });
 
+	  		var label = svg.selectAll('.bar-label');
 		    label.data(DATA.ds, function(d){return d.uid})
 		    	.transition()
 		      .duration(400)
@@ -283,13 +293,13 @@
 
 	  	// The Start Date sorters
 	  	function sortByStartDate(){
-	  		console.log('b',DATA.ds)
+	  		// console.log('b',DATA.ds)
 	  		if(!toggler){
 	  			sortByStartDateAsc();
 	  		}else{
 	  			sortByStartDateDsc();
 	  		}
-	  		console.log('a',DATA.ds)
+	  		// console.log('a',DATA.ds)
 	  	}
 	  	function sortByStartDateAsc(){
 	    	DATA.ds.sort(function(a, b){
@@ -313,7 +323,7 @@
 
 	  	// Hover info
 	  	function getCompanyData(uid){
-	  		console.log(dataInfo[uid])
+	  		// console.log(dataInfo[uid])
 
 	  	}
 
@@ -348,9 +358,45 @@
 		  return result;
 		}
 
+		function animateAndUpdate(){
+    		var bar = svg.selectAll('rect').data(DATA.ds, function(d){return d.uid});
+    		var label = svg.selectAll('.bar-label').data(DATA.ds, function(d){return d.uid});
+
+    		bar.enter().append('rect')
+				.attr("y", function(d, i) { ;return y(i) })
+				.attr("x", function(d) { return xScale(getDate(d.startDate))} )
+				.attr("width", function(d) { return (xScale(getDate(d.endDate)) - xScale(getDate(d.startDate))) } )
+				.attr("height", bar_height)
+				.attr("class", "company-bar")
+				.on("mouseover", function(d){d3.select(this).style("fill", "#F5AF00"); getCompanyData(String(d.uid)) })
+			    .on("mouseout", function() {d3.select(this).style("fill", "#fc0");});
+
+
+		    bar.transition()
+		    	.duration(400)
+		    	.attr("y", function(d, i) {return y(i) });
+
+		    bar.exit().remove();
+
+
+
+			label.enter().append("text")
+				.attr("class", "bar-label")
+				// .attr("text-anchor","end")
+				.attr("x", paddingLeft-10)
+				.attr("y", function(d, i) { return labelY(i); })
+				.text(function(d){return d.companyName});
+
+		    label.transition()
+		      .duration(400)
+		      .attr("y", function(d, i) {return labelY(i) });
+
+		    label.exit().remove();
+
+		}
 
 		$(document).keyup(function(e) {
-			console.log(e.keyCode)
+			// console.log(e.keyCode)
 			if (e.keyCode == 27) { /// esc
 
 
@@ -359,91 +405,97 @@
 
 				DATA.ds = filteredData;
 
-				svg.selectAll('rect')
-					.data(DATA.ds, function(d){return d.uid})
-						.enter().append("rect")
-							.attr("y", function(d, i) { console.log('female',d);return y(i) })
-							.attr("x", function(d) { return xScale(getDate(d.startDate))} )
-						    .attr("width", function(d) { return (xScale(getDate(d.endDate)) - xScale(getDate(d.startDate))) } )
-						    .attr("height", bar_height)
-						    .attr("class", "company-bar")
-						    .on("mouseover", function(d){d3.select(this).style("fill", "#F5AF00"); getCompanyData(String(d.uid)) })
-					        .on("mouseout", function() {d3.select(this).style("fill", "#fc0");});
+	    		console.log(DATA.ds);
 
-				svg.selectAll('text')
-					.data(DATA.ds, function(d){return d.uid})
-					.enter().append("text")
-					    .attr("class", "bar-label")
-					    .attr("x", paddingLeft-10)
-					    .attr("y", function(d, i) { return labelY(i); })
-					    .text(function(d){return d.companyName});
+	    		animateAndUpdate();
+
+	   //  		var bar = svg.selectAll('rect').data(DATA.ds, function(d){return d.uid});
+	   //  		var label = svg.selectAll('.bar-label').data(DATA.ds, function(d){return d.uid});
+
+	   //  		bar.enter().append('rect')
+				// 	.attr("y", function(d, i) { ;return y(i) })
+				// 	.attr("x", function(d) { return xScale(getDate(d.startDate))} )
+				// 	.attr("width", function(d) { return (xScale(getDate(d.endDate)) - xScale(getDate(d.startDate))) } )
+				// 	.attr("height", bar_height)
+				// 	.attr("class", "company-bar")
+				// 	.on("mouseover", function(d){d3.select(this).style("fill", "#F5AF00"); getCompanyData(String(d.uid)) })
+				//     .on("mouseout", function() {d3.select(this).style("fill", "#fc0");});
 
 
-				svg.selectAll('rect').data(DATA.ds, function(d){return d.uid})
-					.exit().remove();
+			 //    bar.transition()
+			 //    	.duration(400)
+			 //    	.attr("y", function(d, i) {return y(i) });
 
-				svg.selectAll('.bar-label').data(DATA.ds, function(d){return d.uid})
-					.exit().remove();
-			
+			 //    bar.exit().remove();
+
+
+
+				// label.enter().append("text")
+				// 	.attr("class", "bar-label")
+				// 	// .attr("text-anchor","end")
+				// 	.attr("x", paddingLeft-10)
+				// 	.attr("y", function(d, i) { return labelY(i); })
+				// 	.text(function(d){return d.companyName});
+
+			 //    label.transition()
+			 //      .duration(400)
+			 //      .attr("y", function(d, i) {return y(i) });
+
+			 //    label.exit().remove();
+
 
 	    	}else if(e.keyCode == 16){ // shift
 				var filteredData = filterJSON(dataSet, "sex", 'male');
-				// console.log(filteredData)
+				DATA.ds = filteredData;
 
-				DATA.ds = filteredData
-				svg.selectAll('rect')
-					.data(DATA.ds, function(d){return d.uid})
-					.enter().append("rect")
-						.attr("y", function(d, i) { console.log('male',d);return y(i) })
-						.attr("x", function(d) { return xScale(getDate(d.startDate))} )
-					    .attr("width", function(d) { return (xScale(getDate(d.endDate)) - xScale(getDate(d.startDate))) } )
-					    .attr("height", bar_height)
-					    .attr("class", "company-bar")
-					    .on("mouseover", function(d){d3.select(this).style("fill", "#F5AF00"); getCompanyData(String(d.uid)) })
-				        .on("mouseout", function() {d3.select(this).style("fill", "#fc0");});
+	    		console.log(DATA.ds);
 
-				svg.selectAll('text')
-					.data(DATA.ds, function(d){return d.uid})
-					.enter().append("text")
-					    .attr("class", "bar-label")
-					    .attr("x", paddingLeft-10)
-					    .attr("y", function(d, i) { return labelY(i); })
-					    .text(function(d){return d.companyName});
-
-				svg.selectAll('rect').data(DATA.ds, function(d){return d.uid})
-					.exit().remove();
-
-				svg.selectAll('.bar-label').data(DATA.ds, function(d){return d.uid})
-					.exit().remove();
+	    		animateAndUpdate();
 
 
-	    	}else if(e.keyCode == 192){ // tilde
+	    // 		var bar = svg.selectAll('rect').data(DATA.ds, function(d){return d.uid});
+
+	    // 		bar.enter().append('rect')
+					// .attr("y", function(d, i) { ;return y(i) })
+					// 	.attr("x", function(d) { return xScale(getDate(d.startDate))} )
+					//     .attr("width", function(d) { return (xScale(getDate(d.endDate)) - xScale(getDate(d.startDate))) } )
+					//     .attr("height", bar_height)
+					//     .attr("class", "company-bar")
+					//     .on("mouseover", function(d){d3.select(this).style("fill", "#F5AF00"); getCompanyData(String(d.uid)) })
+				 //        .on("mouseout", function() {d3.select(this).style("fill", "#fc0");});
+
+
+			  //   bar.transition()
+			  //     .duration(400)
+			  //     .attr("y", function(d, i) {return y(i) });
+
+			  //   bar.exit().remove();
+
+
+	    	}else if(e.keyCode == 18){ // option, go back to original data
 	    		DATA.ds = dataSet;
 
-	    		svg.selectAll('rect')
-					.data(DATA.ds, function(d){return d.uid})
-					.enter().append("rect")
-						.attr("y", function(d, i) { console.log('male',d);return y(i) })
-						.attr("x", function(d) { return xScale(getDate(d.startDate))} )
-					    .attr("width", function(d) { return (xScale(getDate(d.endDate)) - xScale(getDate(d.startDate))) } )
-					    .attr("height", bar_height)
-					    .attr("class", "company-bar")
-					    .on("mouseover", function(d){d3.select(this).style("fill", "#F5AF00"); getCompanyData(String(d.uid)) })
-				        .on("mouseout", function() {d3.select(this).style("fill", "#fc0");});
+	    		console.log(DATA.ds);
 
-				svg.selectAll('text')
-					.data(DATA.ds, function(d){return d.uid})
-					.enter().append("text")
-					    .attr("class", "bar-label")
-					    .attr("x", paddingLeft-10)
-					    .attr("y", function(d, i) { return labelY(i); })
-					    .text(function(d){return d.companyName});
+	    		animateAndUpdate();
 
-				svg.selectAll('rect').data(DATA.ds, function(d){return d.uid})
-					.exit().remove();
 
-				svg.selectAll('.bar-label').data(DATA.ds, function(d){return d.uid})
-					.exit().remove();
+	    // 		var bar = svg.selectAll('rect').data(DATA.ds, function(d){return d.uid});
+
+	    // 		bar.enter().append('rect')
+					// .attr("y", function(d, i) { ;return y(i) })
+					// 	.attr("x", function(d) { return xScale(getDate(d.startDate))} )
+					//     .attr("width", function(d) { return (xScale(getDate(d.endDate)) - xScale(getDate(d.startDate))) } )
+					//     .attr("height", bar_height)
+					//     .attr("class", "company-bar")
+					//     .on("mouseover", function(d){d3.select(this).style("fill", "#F5AF00"); getCompanyData(String(d.uid)) })
+				 //        .on("mouseout", function() {d3.select(this).style("fill", "#fc0");});
+
+			  //   bar.transition()
+			  //     .duration(400)
+			  //     .attr("y", function(d, i) {return y(i) });
+
+			  //   bar.exit().remove();
 	    	}
 	    });
 
