@@ -45,20 +45,41 @@
 	.sort-order{
 		font-size:11px;
 		letter-spacing:1px;
-		font-weight:bold;
+		text-transform: uppercase;
+	}
+	.sorter-block{
+		float:left;
+		width:200px;
+		margin-right:20px;
 	}
 	</style>
 </head>
 <body>
-	<h4>Sorters</h4>
-	<ul id="btns">
-		<li data-sorter="name">
-			<a href="#">Sort by name</a>
-		</li>
-		<li data-sorter="startDate">
-			<a href="#">Sort by start date</a>
-		</li>
-	</ul>
+	<div class="sorter-block">
+		<h4>Sorters</h4>
+		<ul id="btns" class="sorter">
+			<li data-sorter="name">
+				<a href="#">Sort by name</a>
+			</li>
+			<li data-sorter="startDate">
+				<a href="#">Sort by start date</a>
+			</li>
+		</ul>
+	</div>
+	<div class="sorter-block">
+		<h4>Filters</h4>
+		<ul id="btns" class="filter">
+			<li data-filter="all" data-filter-group="sex">
+				<a href="#">Show all sexes</a>
+			</li>
+			<li data-filter="male" data-filter-group="sex">
+				<a href="#">Show men</a>
+			</li>
+			<li data-filter="female" data-filter-group="sex">
+				<a href="#">Show women</a>
+			</li>
+		</ul>
+	</div>
 	<script>
 		var dataSet = [
 			{
@@ -331,7 +352,7 @@
 	  	// BUTTONS
 
 	    // Sorters
-	    $('#btns li').click( function(){
+	    $('#btns.sorter li').click( function(){
 	    	$('.sort-order').remove();
 	    	var sorter = $(this).attr('data-sorter');
 	    	toggleSort();
@@ -343,6 +364,20 @@
 	    	}
     		animateRows();
     		$(this).append(sortOrderText())
+	    });	   
+	    // Filters
+	    $('#btns.filter li').click( function(){
+	    	var filter_group = $(this).attr('data-filter-group')
+	    	var filter = $(this).attr('data-filter');
+
+	    	if (filter != 'all'){
+		    	var filteredData = filterJSON(dataSet, filter_group, filter);
+				DATA.ds = filteredData;
+	    	}else{
+	    		DATA.ds = dataSet;
+	    	}
+			animateAndUpdate();
+
 	    });
 
 
