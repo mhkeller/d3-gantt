@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Ganttttttttttttt</title>
+	<script src="d3.v3.min.js"></script>
+	<script src="jquery.min.js"></script>
+	<script src="underscore-min.js"></script>
+	<!--<script src="http://d3js.org/d3.v3.min.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.2/underscore-min.js"></script>-->
+	<style>
+	.axis path,
+	.axis line {
+	    fill: none;
+	    stroke: none;
+	    shape-rendering: crispEdges;
+	}
+
+	.axis text {
+	    font-family: sans-serif;
+	    font-size: 11px;
+	}
+
+	.company-bar {
+		fill:#fc0;
+	}
+	.bar-label {
+		color:black;
+	    font-family: sans-serif;
+	    font-size: 11px;
+	    text-anchor:end;
+	}
+
+	/* HTML Styles*/
+	body{
+		font-family: "HelveticaNeue-Light", "Helvetica Neue Light","Helvetica Neue", Helvetica,sans-serif;
+		font-weight: 300;
+	}
+	h1,h2,h3,h4,h5,h6,ul{
+		margin:0;
+	}
+	ul li{
+		font-size:14px;
+	}
+	.sort-order{
+		font-size:11px;
+		letter-spacing:1px;
+		font-weight:bold;
+	}
+	</style>
+</head>
+<body>
+	<h4>Sorters</h4>
+	<ul id="btns">
+		<li data-sorter="name">
+			<a href="#">Sort by name</a>
+		</li>
+		<li data-sorter="startDate">
+			<a href="#">Sort by start date</a>
+		</li>
+	</ul>
+	<script>
+		var dataSet = [
+			{
+				"startDate":"1/1/12",
+				"endDate":"2/1/12",
+				"sex":"male",
+				"companyName":"Vandelay Industries",
+			},
+			{
+				"startDate":"5/2/12",
+				"endDate":"4/31/13",
+				"sex":"male",
+				"companyName":"Dr. Martin Van Nostrand"
+			},
+			{
+				"startDate":"6/14/12",
+				"endDate":"8/11/12",
+				"sex":"male",
+				"companyName":"Uncle Leo"
+			},
+			{
+				"startDate":"3/1/12",
+				"endDate":"7/31/12",
+				"sex":"female",
+				"companyName":"Jackie Chiles"
+			},
+			{
+				"startDate":"3/1/12",
+				"endDate":"7/31/12",
+				"sex":"female",
+				"companyName":"Crazy Joe Davola"
+			},
+			{
+				"startDate":"11/1/12",
+				"endDate":"12/31/13",
+				"sex":"male",
+				"companyName":"Lloyd Braun"
+			},
+			{
+				"startDate":"12/1/11",
+				"endDate":"6/15/12",
+				"sex":"female",
+				"companyName":"Sue Ellen Mishkey"
+			}
+		]
+
+		var dataInfo = {};
+
+		// D3 requires each object to have a unique key for object constancy
+		// http://bost.ocks.org/mike/constancy/
+		// We can use underscore to create that if we're not sure if they exist in our data
+		// Useful if you're updating data quickly (realtime, daily) and need otherwise meaningless uids
+
+		// Also useful for making an associative array for hover info
+		for (var datum in dataSet){
+
+			if(_.has(dataSet, datum)){
+				var uid = _.uniqueId('a');
+				// Add unique id
+				dataSet[datum]['uid'] = uid
+
+				// Create associate array
+				dataInfo[uid] = dataSet[datum];
+			}
+		}
+
+		// Story the dataset as a more global variable. This way we can keep a copy of our original dataset unchanged and plug different views of that data into our functions. Still not sure if this is the right way to do it.
+		var DATA ={
+			ds: dataSet
+		}
+
+		var window_width = $(document).width()
+
+		// How many projects do you have?
+		var prjs = dataSet.length;
+
+		// Toggler
+		var toggler = true;
+
+		// Dimensions
+		var bar_height = 20;
+		var row_height =  bar_height + 10;
+		var vertical_padding = 150
+		var bar_start_offset = 40
+		var w = window_width - 100;
+		var h = prjs * row_height + vertical_padding;
+
+		var svg = d3.select("body")
+		            .append("svg")
+		            .attr("width", w)  
+		            .attr("height", h);
+
+		// Convertt a human readable date to a unix date, useful for sorting
+		function getDate(date) {
+		    return new Date(date);
+		}
+
+		// These are used to calculate the min and max of the data set at start
+		// normally d3.min() takes an array of values
+		// but since our data is an object you have to tell it what value you want to get the min of
+		// i.e. d3.min([0,1,2,3,4,5]) is easy to calculate
+		// but if our data is an object and looks like this our dataSet object above
+		// then d3.min(dataSet) really makes no sense, because what is it suppposed to sort on?
+		// The solution, you can pass in a second argument to d3.min() and d3.max() that is an accessor function (no idea if that's the right erminology)
+		// This function now loops through every startDate or endDate value of the data and makes an array of those elements on the backend of the code. (Also probably a misuse of vocabulary)
+		// d.startDate is a human readable date though, i.e. 11/5/1986
+		// So if you use the handy getDate function, that will convert it to a unix timestamp i.e. 482082320 (not a real unix time)
+		// so your d3.min() function now has this nice array of numbers that it can easily find the min or max of
+		function accessStartDate(d) { return getDate(d.startDate); }
+		function accessEndDate(d) { return getDate(d.endDate); }
+			
+		var min = d3.min(dataSet, accessStartDate);
+		var max = d3.max(dataSet, accessEndDate);
+
+		var paddingLeft = 150;
+		var paddingTop = 50;
+
+		// The range is the layout constraints set above, the domain is the min and max date
+		// So it's saying if Jan 1 is our first date, have that start at 50 pixels or whatever to the left of the screen
+		// We're fitting our data range to the layout
+		var xScale = d3.time.scale()
+		    .domain([min,max]).nice()
+		    .range([paddingLeft, w]);
+
+		var xAxis = d3.svg.axis()
+                .scale(xScale)
+                .orient("bottom");
+
+		// Lines
+	    var line = svg.append("g")
+	    	.selectAll("line")
+		    	.data(xScale.ticks(10))
+		  .enter().append("line")
+		    .attr("x1", xScale)
+		    .attr("x2", xScale)
+		    .attr("y1", paddingTop + 30)
+		    .attr("y2", h-50)
+		    .style("stroke", "#ccc");
+
+
+		// Given the index of your data, calcuate the y value of that company 
+		var y = function(i){
+			return i*row_height+paddingTop + bar_start_offset;
+		}
+
+		// The same thing but slightly tweaked so labels sit in the center of the bar 
+		var labelY = function(i){
+			return i * row_height + paddingTop + bar_start_offset + 13;
+		}
+
+		// Company bars
+		var bar = svg.selectAll("rect")
+			.data(DATA.ds, function(key){return key.uid});
+
+		bar.enter().append("rect")
+				.attr("y", function(d, i) { ;return y(i) })
+				.attr("x", function(d) { return xScale(getDate(d.startDate))} )
+			    .attr("width", function(d) { return (xScale(getDate(d.endDate)) - xScale(getDate(d.startDate))) } )
+			    .attr("height", bar_height)
+			    .attr("class", "company-bar")
+			    .on("mouseover", function(d){d3.select(this).style("fill", "#F5AF00"); getCompanyData(String(d.uid)) })
+		        .on("mouseout", function() {d3.select(this).style("fill", "#fc0");});
+
+		// Company Labels
+		var label = svg.selectAll("text")
+				.data(DATA.ds, function(key){return key.uid});
+
+		label.enter().append("text")
+			    .attr("class", "bar-label")
+			    // .attr("text-anchor","end")
+			    .attr("x", paddingLeft-10)
+			    .attr("y", function(d, i) { return labelY(i); })
+			    .text(function(d){return d.companyName});
+
+        // Bottom Axis
+        var btmAxis = svg.append("g")
+            .attr("transform", "translate(0,"+(h - 25)+")")
+            .attr("class", "axis")
+		    .call(xAxis);
+
+        // Top Axis
+        var topAxis = svg.append("g")
+            .attr("transform", "translate(0,"+paddingTop+")")
+            .attr("class", "axis")
+		    .call(xAxis);
+
+		// take the new sorted dataSet and calculate new y values from the new index values
+	  	function animateRows(){
+		    bar.data(DATA.ds, function(d){return d.uid})
+		    	.transition()
+		      .duration(400)
+		      .attr("y", function(d, i) {return y(i) });
+
+		    label.data(DATA.ds, function(d){return d.uid})
+		    	.transition()
+		      .duration(400)
+		      .attr("y", function(d, i) {return labelY(i) });
+	  	}
+
+	  	function toggleSort(){
+	  		toggler = !toggler;
+	  	}
+
+	  	// The name sorters
+	  	function sortByName(){
+	  		if(!toggler){
+	  			sortByNameAsc();
+	  		}else{
+	  			sortByNameDsc();
+	  		}
+	  	}
+	  	function sortByNameAsc(){
+	    	DATA.ds.sort(function(a, b){
+			  return d3.ascending(a.companyName, b.companyName);
+			})
+	  	}
+	  	function sortByNameDsc(){
+	    	DATA.ds.sort(function(a, b){
+			  return d3.descending(a.companyName, b.companyName);
+			})
+	  	}
+
+	  	// The Start Date sorters
+	  	function sortByStartDate(){
+	  		console.log('b',DATA.ds)
+	  		if(!toggler){
+	  			sortByStartDateAsc();
+	  		}else{
+	  			sortByStartDateDsc();
+	  		}
+	  		console.log('a',DATA.ds)
+	  	}
+	  	function sortByStartDateAsc(){
+	    	DATA.ds.sort(function(a, b){
+			  return d3.ascending(getDate(a.startDate), getDate(b.startDate));
+			})
+	  	}
+	  	function sortByStartDateDsc(){
+	    	DATA.ds.sort(function(a, b){
+			  return d3.descending(getDate(a.startDate), getDate(b.startDate));
+			})
+	  	}
+
+	  	// Extra text so you know if you're ascending or descending
+	  	function sortOrderText(){
+	  		if (toggler){
+	  			return '<span class="sort-order">(asc)</span>';
+	  		}else{
+	  			return '<span class="sort-order">(dsc)</span>';
+	  		}
+	  	}
+
+	  	// Hover info
+	  	function getCompanyData(uid){
+	  		console.log(dataInfo[uid])
+
+	  	}
+
+
+	  	// BUTTONS
+
+	    // Sorters
+	    $('#btns li').click( function(){
+	    	$('.sort-order').remove();
+	    	var sorter = $(this).attr('data-sorter');
+	    	toggleSort();
+
+	    	if (sorter == 'name'){
+	    		sortByName();
+	    	}else if (sorter == 'startDate'){
+	    		sortByStartDate()
+	    	}
+    		animateRows();
+    		$(this).append(sortOrderText())
+	    });
+
+
+
+	  	function filterJSON(json, key, value) {
+		  var result = [];
+		  for (var index in json) {
+		    if (json[index][key] === value) {
+		      result.push(json[index]);
+		      // result[index] = json[index];
+		    }
+		  }
+		  return result;
+		}
+
+
+		$(document).keyup(function(e) {
+			console.log(e.keyCode)
+			if (e.keyCode == 27) { /// esc
+
+
+				var filteredData = filterJSON(dataSet, "sex", 'female');
+				// console.log(filteredData)
+
+				DATA.ds = filteredData;
+
+				svg.selectAll('rect')
+					.data(DATA.ds, function(d){return d.uid})
+						.enter().append("rect")
+							.attr("y", function(d, i) { console.log('female',d);return y(i) })
+							.attr("x", function(d) { return xScale(getDate(d.startDate))} )
+						    .attr("width", function(d) { return (xScale(getDate(d.endDate)) - xScale(getDate(d.startDate))) } )
+						    .attr("height", bar_height)
+						    .attr("class", "company-bar")
+						    .on("mouseover", function(d){d3.select(this).style("fill", "#F5AF00"); getCompanyData(String(d.uid)) })
+					        .on("mouseout", function() {d3.select(this).style("fill", "#fc0");});
+
+				svg.selectAll('text')
+					.data(DATA.ds, function(d){return d.uid})
+					.enter().append("text")
+					    .attr("class", "bar-label")
+					    .attr("x", paddingLeft-10)
+					    .attr("y", function(d, i) { return labelY(i); })
+					    .text(function(d){return d.companyName});
+
+
+				svg.selectAll('rect').data(DATA.ds, function(d){return d.uid})
+					.exit().remove();
+
+				svg.selectAll('.bar-label').data(DATA.ds, function(d){return d.uid})
+					.exit().remove();
+			
+
+	    	}else if(e.keyCode == 16){ // shift
+				var filteredData = filterJSON(dataSet, "sex", 'male');
+				// console.log(filteredData)
+
+				DATA.ds = filteredData
+				svg.selectAll('rect')
+					.data(DATA.ds, function(d){return d.uid})
+					.enter().append("rect")
+						.attr("y", function(d, i) { console.log('male',d);return y(i) })
+						.attr("x", function(d) { return xScale(getDate(d.startDate))} )
+					    .attr("width", function(d) { return (xScale(getDate(d.endDate)) - xScale(getDate(d.startDate))) } )
+					    .attr("height", bar_height)
+					    .attr("class", "company-bar")
+					    .on("mouseover", function(d){d3.select(this).style("fill", "#F5AF00"); getCompanyData(String(d.uid)) })
+				        .on("mouseout", function() {d3.select(this).style("fill", "#fc0");});
+
+				svg.selectAll('text')
+					.data(DATA.ds, function(d){return d.uid})
+					.enter().append("text")
+					    .attr("class", "bar-label")
+					    .attr("x", paddingLeft-10)
+					    .attr("y", function(d, i) { return labelY(i); })
+					    .text(function(d){return d.companyName});
+
+				svg.selectAll('rect').data(DATA.ds, function(d){return d.uid})
+					.exit().remove();
+
+				svg.selectAll('.bar-label').data(DATA.ds, function(d){return d.uid})
+					.exit().remove();
+
+
+	    	}else if(e.keyCode == 192){ // tilde
+	    		DATA.ds = dataSet;
+
+	    		svg.selectAll('rect')
+					.data(DATA.ds, function(d){return d.uid})
+					.enter().append("rect")
+						.attr("y", function(d, i) { console.log('male',d);return y(i) })
+						.attr("x", function(d) { return xScale(getDate(d.startDate))} )
+					    .attr("width", function(d) { return (xScale(getDate(d.endDate)) - xScale(getDate(d.startDate))) } )
+					    .attr("height", bar_height)
+					    .attr("class", "company-bar")
+					    .on("mouseover", function(d){d3.select(this).style("fill", "#F5AF00"); getCompanyData(String(d.uid)) })
+				        .on("mouseout", function() {d3.select(this).style("fill", "#fc0");});
+
+				svg.selectAll('text')
+					.data(DATA.ds, function(d){return d.uid})
+					.enter().append("text")
+					    .attr("class", "bar-label")
+					    .attr("x", paddingLeft-10)
+					    .attr("y", function(d, i) { return labelY(i); })
+					    .text(function(d){return d.companyName});
+
+				svg.selectAll('rect').data(DATA.ds, function(d){return d.uid})
+					.exit().remove();
+
+				svg.selectAll('.bar-label').data(DATA.ds, function(d){return d.uid})
+					.exit().remove();
+	    	}
+	    });
+
+	</script>
+</body>
+</html>
