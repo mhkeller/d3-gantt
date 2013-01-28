@@ -42,6 +42,9 @@
 	ul li{
 		font-size:14px;
 	}
+	#header{
+		height:100px;
+	}
 	.sort-order{
 		font-size:11px;
 		letter-spacing:1px;
@@ -52,86 +55,96 @@
 		width:200px;
 		margin-right:20px;
 	}
+	.header-block{
+		float:left;
+	}
 	</style>
 </head>
 <body>
-	<div class="sorter-block">
-		<h4>Sorters</h4>
-		<ul id="btns" class="sorter">
-			<li data-sorter="name">
-				<a href="#">Sort by name</a>
-			</li>
-			<li data-sorter="startDate">
-				<a href="#">Sort by start date</a>
-			</li>
-		</ul>
-	</div>
-	<div class="sorter-block">
-		<h4>Filters</h4>
-		<ul id="btns" class="filter">
-			<li data-filter="all" data-filter-group="sex">
-				<a href="#">Show all sexes</a>
-			</li>
-			<li data-filter="male" data-filter-group="sex">
-				<a href="#">Show men</a>
-			</li>
-			<li data-filter="female" data-filter-group="sex">
-				<a href="#">Show women</a>
-			</li>
-		</ul>
+	<div id='header'>
+		<div class="sorter-block">
+			<h4>Sorters</h4>
+			<ul id="btns" class="sorter">
+				<li data-sorter="name">
+					<a href="#">Sort by name</a>
+				</li>
+				<li data-sorter="startDate">
+					<a href="#">Sort by start date</a>
+				</li>
+			</ul>
+		</div>
+		<div class="sorter-block">
+			<h4>Filters</h4>
+			<ul id="btns" class="filter">
+				<li data-filter="all" data-filter-group="Sex">
+					<a href="#">Show all sexes</a>
+				</li>
+				<li data-filter="male" data-filter-group="Sex">
+					<a href="#">Show men</a>
+				</li>
+				<li data-filter="female" data-filter-group="Sex">
+					<a href="#">Show women</a>
+				</li>
+			</ul>
+		</div>
+		<div class='header-block'>
+			<ul id='hover-info'>
+			</ul>
+		</div>
 	</div>
 	<script>
 		var dataSet = [
 			{
-				"startDate":"2012-5-1",
-				"endDate":"2012-6-21",
-				"sex":"male",
-				"companyName":"Crazy Joe Davola",
+				"Start date":"2012-5-1",
+				"End date":"2012-6-21",
+				"Sex":"male",
+				"Name":"Crazy Joe Davola",
 			},
 			{
-				"startDate":"2012-2-15",
-				"endDate":"2012-8-7",
-				"sex":"male",
-				"companyName":"Dr. Martin Van Nostrand"
+				"Start date":"2012-2-15",
+				"End date":"2012-8-7",
+				"Sex":"male",
+				"Name":"Dr. Martin Van Nostrand"
 			},
 			{
-				"startDate":"2012-3-1",
-				"endDate":"2012-9-31",
-				"sex":"male",
-				"companyName":"Uncle Leo"
+				"Start date":"2012-3-1",
+				"End date":"2012-9-31",
+				"Sex":"male",
+				"Name":"Uncle Leo"
 			},
 			{
-				"startDate":"2012-12-1",
-				"endDate":"2013-2-31",
-				"sex":"male",
-				"companyName":"Jackie Chiles"
+				"Start date":"2012-12-1",
+				"End date":"2013-2-31",
+				"Sex":"male",
+				"Name":"Jackie Chiles"
 			},
 			{
-				"startDate":"2012-5-5",
-				"endDate":"2013-1-21",
-				"sex":"female",
-				"companyName":"The Drakette"
+				"Start date":"2012-5-5",
+				"End date":"2013-1-21",
+				"Sex":"female",
+				"Name":"The Drakette"
 			},
 			{
-				"startDate":"2012-1-10",
-				"endDate":"2012-11-31",
-				"sex":"female",
-				"companyName":"Babs Kramer"
+				"Start date":"2012-1-10",
+				"End date":"2012-11-31",
+				"Sex":"female",
+				"Name":"Babs Kramer"
 			},
 			{
-				"startDate":"2012-4-1",
-				"endDate":"2012-7-31",
-				"sex":"female",
-				"companyName":"Wanda Pepper"
+				"Start date":"2012-4-1",
+				"End date":"2012-7-31",
+				"Sex":"female",
+				"Name":"Wanda Pepper"
 			},
 			{
-				"startDate":"2013-1-15",
-				"endDate":"2013-3-11",
-				"sex":"female",
-				"companyName":"Sue Ellen Mishkey"
+				"Start date":"2013-1-15",
+				"End date":"2013-3-11",
+				"Sex":"female",
+				"Name":"Sue Ellen Mishkey"
 			}
 		]
 
+		// An empty object which will become the associative array for to be accessed by the hover function. The uid is the key 
 		var dataInfo = {};
 
 		// D3 requires each object to have a unique key for object constancy
@@ -194,8 +207,8 @@
 		// d.startDate is a human readable date though, i.e. 11/5/1986
 		// So if you use the handy getDate function, that will convert it to a unix timestamp i.e. 482082320 (not a real unix time)
 		// so your d3.min() function now has this nice array of numbers that it can easily find the min or max of
-		function accessStartDate(d) { return getDate(d.startDate); }
-		function accessEndDate(d) { return getDate(d.endDate); }
+		function accessStartDate(d) { return getDate(d['Start date']); }
+		function accessEndDate(d) { return getDate(d['End date']); }
 			
 		var min = d3.min(dataSet, accessStartDate);
 		var max = d3.max(dataSet, accessEndDate);
@@ -242,9 +255,9 @@
 			.data(DATA.ds, function(key){return key.uid});
 
 		bar.enter().append("rect")
-				.attr("y", function(d, i) { ;return y(i) })
-				.attr("x", function(d) { return xScale(getDate(d.startDate))} )
-			    .attr("width", function(d) { return (xScale(getDate(d.endDate)) - xScale(getDate(d.startDate))) } )
+				.attr("y", function(d, i) { return y(i) })
+				.attr("x", function(d) { return xScale(getDate(d['Start date'])) } )
+			    .attr("width", function(d) { return (xScale(getDate(d['End date'])) - xScale(getDate(d['Start date']))) } )
 			    .attr("height", bar_height)
 			    .attr("class", "company-bar")
 			    .on("mouseover", function(d){d3.select(this).style("fill", "#F5AF00"); getCompanyData(String(d.uid)) })
@@ -259,7 +272,7 @@
 			    // .attr("text-anchor","end")
 			    .attr("x", paddingLeft-10)
 			    .attr("y", function(d, i) { return labelY(i); })
-			    .text(function(d){return d.companyName});
+			    .text(function(d){return d['Name']});
 
         // Bottom Axis
         var btmAxis = svg.append("g")
@@ -303,12 +316,12 @@
 	  	}
 	  	function sortByNameAsc(){
 	    	DATA.ds.sort(function(a, b){
-			  return d3.ascending(a.companyName, b.companyName);
+			  return d3.ascending(a['Name'], b['Name']);
 			})
 	  	}
 	  	function sortByNameDsc(){
 	    	DATA.ds.sort(function(a, b){
-			  return d3.descending(a.companyName, b.companyName);
+			  return d3.descending(a['Name'], b['Name']);
 			})
 	  	}
 
@@ -324,12 +337,12 @@
 	  	}
 	  	function sortByStartDateAsc(){
 	    	DATA.ds.sort(function(a, b){
-			  return d3.ascending(getDate(a.startDate), getDate(b.startDate));
+			  return d3.ascending(getDate(a['Start date']), getDate(b['Start date']));
 			})
 	  	}
 	  	function sortByStartDateDsc(){
 	    	DATA.ds.sort(function(a, b){
-			  return d3.descending(getDate(a.startDate), getDate(b.startDate));
+			  return d3.descending(getDate(a['Start date']), getDate(b['Start date']));
 			})
 	  	}
 
@@ -344,7 +357,20 @@
 
 	  	// Hover info
 	  	function getCompanyData(uid){
-	  		console.log(dataInfo[uid])
+	  		$('#hover-info').html('')
+	  		var obj = dataInfo[uid];
+	  		var lis = '';
+	  		for (var key in obj){
+	  			if(_.has(obj, key)){
+	  				if(key != 'uid'){
+		  				lis += '<li>'+key + ': ' +obj[key]+'</li>';
+	  				}
+	  			}
+	  		}
+	  		console.log(lis)
+	  		$('#hover-info').html(lis)
+
+	  		// console.log(dataInfo[uid])
 
 	  	}
 
@@ -398,8 +424,8 @@
 
     		bar.enter().append('rect')
 				.attr("y", function(d, i) { ;return y(i) })
-				.attr("x", function(d) { return xScale(getDate(d.startDate))} )
-				.attr("width", function(d) { return (xScale(getDate(d.endDate)) - xScale(getDate(d.startDate))) } )
+				.attr("x", function(d) { return xScale(getDate(d['Start date']))} )
+				.attr("width", function(d) { return (xScale(getDate(d['End date'])) - xScale(getDate(d['Start date']))) } )
 				.attr("height", bar_height)
 				.attr("class", "company-bar")
 				.on("mouseover", function(d){d3.select(this).style("fill", "#F5AF00"); getCompanyData(String(d.uid)) })
@@ -418,7 +444,7 @@
 				.attr("class", "bar-label")
 				.attr("x", paddingLeft-10)
 				.attr("y", function(d, i) { return labelY(i); })
-				.text(function(d){return d.companyName});
+				.text(function(d){return d['Name']});
 
 		    label.transition()
 		      .duration(400)
@@ -433,7 +459,7 @@
 			if (e.keyCode == 27) { /// esc
 
 
-				var filteredData = filterJSON(dataSet, "sex", 'female');
+				var filteredData = filterJSON(dataSet, "Sex", 'female');
 				// console.log(filteredData)
 
 				DATA.ds = filteredData;
@@ -444,7 +470,7 @@
 
 
 	    	}else if(e.keyCode == 16){ // shift
-				var filteredData = filterJSON(dataSet, "sex", 'male');
+				var filteredData = filterJSON(dataSet, "Sex", 'male');
 				DATA.ds = filteredData;
 
 	    		console.log(DATA.ds);
